@@ -1,14 +1,14 @@
 const asyncHandler = (requestHandler) => {
-    return (err, req, res, next) => {
+    return (req, res, next) => {
         Promise
-            .resolve(requestHandler(err, req, res, next))
+            .resolve(requestHandler(req, res, next))
             .catch((error => next(error)))
     }
 }
 
-const asyncTyChHandler = (fn) => async (err, req, res, next) => {
+const asyncTyChHandler = (fn) => async (req, res, next) => {
     try {
-        await fn(err, req, res, next)
+        await fn(req, res, next)
     } catch (error) {
         res.status(err.code || error.code || 500).json({
             success: false,
