@@ -192,7 +192,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
         user._id,
         { $set: { refreshToken: null } },
-        { new: true, useFindAndModify: false }
+        { new: true }
     );
     // console.log("🚀 ~ file: user.controller.js:178 ~ logoutUser ~ updatedUser:", updatedUser)
 
@@ -208,7 +208,9 @@ const logoutUser = asyncHandler(async (req, res) => {
 const refreshAccessToken = asyncHandler(async (req, res) => {
     try {
         const incomingRefreshToken =
-            req.header("Authorization")?.replace("Bearer ", "") || req.body.refreshToken || req.cookies?.refreshToken
+            req.header("Authorization")?.replace("Bearer ", "") ||
+            req.body.refreshToken ||
+            req.cookies?.refreshToken;
 
         if (!incomingRefreshToken) {
             throw new ApiError(401, "Unauthorized request");
@@ -238,11 +240,9 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             throw new ApiError(401, "Refresh token not matched");
         }
 
-
         //generate new access and refresh token
-        const { newAccessToken, newRefreshToken } = await generateAccessAndRefreshTokens(
-            foundUser._id
-        );
+        const { newAccessToken, newRefreshToken } =
+            await generateAccessAndRefreshTokens(foundUser._id);
 
         //send cookie
         return res
@@ -261,14 +261,17 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 });
 
-//change password
+//change password function
 const changeCurrentPassword = asyncHandler(async (req, res) => {
     // 1. req body -> data
     const { currentPassword, newPassword } = req.body;
 
     // 2. check if current password and new password are not null
     if (!currentPassword || !newPassword) {
-        throw new ApiError(400, "Current password and new password are required")
+        throw new ApiError(
+            400,
+            "Current password and new password are required"
+        );
     }
 
     // 3. check if current password is correct
@@ -277,7 +280,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     // console.log("🚀 ~ file: user.controller.js:277 ~ changeCurrentPassword ~ isPasswordCorrect:", isPasswordCorrect)
 
     if (!isPasswordCorrect) {
-        throw new ApiError(400, "Current password is incorrect")
+        throw new ApiError(400, "Current password is incorrect");
     }
 
     // 4. update password in database and set validation false
@@ -286,9 +289,47 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     // console.log("🚀 ~ file: user.controller.js:286 ~ changeCurrentPassword ~ user:", user)
 
     // 5. send response
-    return res.status(200).json(new ApiResponse(200, null, "Password updated successfully"))
-})
+    return res
+        .status(200)
+        .json(new ApiResponse(200, null, "Password updated successfully"));
+});
 
+//get current user function
+const getCurrentUser = asyncHandler(async (req, res) => {
+    return res
+        .status(200)
+        .json(new ApiResponse(200, req.user, "User fetched successfully"));
+});
 
+//update user profile function
+const updateUserProfile = asyncHandler(async (req, res) => {
+    const { fullName, email } = req.body;
+    if (!fullName || !email) {
+        throw new ApiError(400, "Full name and email are required");
+    }
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword };
+    //findbyIdAndUpdate user
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        { $set: { fullName, email } },
+        { new: true }
+    ).select("-password -refreshToken");
+
+    // const user = await User.findById(req.user?._id);
+    // user.fullName = fullName;
+    // user.email = email;
+    // await user.save({ validateBeforeSave: false });
+    return res
+        .status(200)
+        .json(new ApiResponse(200, user, "User profile updated successfully"));
+});
+
+export {
+    registerUser,
+    loginUser,
+    logoutUser,
+    refreshAccessToken,
+    changeCurrentPassword,
+    getCurrentUser,
+    updateUserProfile,
+};
