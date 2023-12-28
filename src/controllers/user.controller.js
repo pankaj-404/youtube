@@ -7,6 +7,7 @@ import { fileUploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { accessTokenOptions, refreshTokenOptions } from "../constants.js";
 
+
 // generateAccessAndRefreshTokens function for generating access and refresh token
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -324,6 +325,63 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, user, "User profile updated successfully"));
 });
 
+//update user avatar function
+const updateUserAvatar = asyncHandler(async (req, res) => {
+    //extract avatar local path from req
+    const avatarLocalPath = req?.file?.path;
+
+    if (!avatarLocalPath) {
+        throw new ApiError(400, "Avatar file is missing")
+    }
+
+    //upload avatarLocalPath to cloudinary
+    const updatedAvatar = await fileUploadOnCloudinary(avatarLocalPath);
+
+    if (!updatedAvatar.url) {
+        throw new ApiError(400, "Failed to upload avatar")
+    }
+
+    //findbyIdAndUpdate user
+    const updatedUser = await User.findByIdAndUpdate(
+        req.user?._id,
+        { $set: { avatar: updatedAvatar.url } },
+        { new: true }
+    ).select("-password -refreshToken");
+
+    // send response
+    return res.status(200).json(new ApiResponse(200, updatedUser, "Avatar updated successfully"))
+
+})
+
+//update user coverImage function
+const updateUserCoverImage = asyncHandler(async (req, res) => {
+    //extract avatar local path from req
+    const coverImageLocalPath = req?.file?.path;
+
+    if (!coverImageLocalPath) {
+        throw new ApiError(400, "Cover image file is missing")
+    }
+
+    //upload coverImageLocalPath to cloudinary
+    const updatedCoverImage = await fileUploadOnCloudinary(coverImageLocalPath);
+
+    if (!updatedCoverImage.url) {
+        throw new ApiError(400, "Failed to upload cover image")
+    }
+
+    //findbyIdAndUpdate user
+    const updatedUser = await User.findByIdAndUpdate(
+        req.user?._id,
+        { $set: { coverImage: updatedCoverImage.url } },
+        { new: true }
+    ).select("-password -refreshToken");
+
+    // send response
+    return res.status(200).json(new ApiResponse(200, updatedUser, "Cover image updated successfully"))
+
+})
+
+
 export {
     registerUser,
     loginUser,
@@ -332,4 +390,6 @@ export {
     changeCurrentPassword,
     getCurrentUser,
     updateUserProfile,
+    updateUserAvatar,
+    updateUserCoverImage
 };
