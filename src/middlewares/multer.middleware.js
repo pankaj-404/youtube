@@ -8,9 +8,9 @@ const storage = multer.diskStorage({
         cb(null, file.originalname)
     }
 })
-console.log("🚀 ~ file: multer.middleware.js:11 ~ storage:", storage)
+// console.log("🚀 ~ file: multer.middleware.js:11 ~ storage:", storage)
 
-const upload = multer({ storage: storage })
-console.log("🚀 ~ file: multer.middleware.js:14 ~ upload:", upload)
+const upload = multer({ storage })
+// console.log("🚀 ~ file: multer.middleware.js:14 ~ upload:", upload)
 
 export { upload }
