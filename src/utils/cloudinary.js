@@ -8,6 +8,7 @@ cloudinary.config({
 });
 
 const fileUploadOnCloudinary = async (localFilePath) => {
+    // console.log("🚀 ~ file: cloudinary.js:11 ~ fileUploadOnCloudinary ~ localFilePath:", localFilePath)
     try {
         if (!localFilePath) return null
 
@@ -16,7 +17,8 @@ const fileUploadOnCloudinary = async (localFilePath) => {
         })
 
         //file upload success
-        console.log("🚀 ~ file: cloudinary.js:17 ~ fileUploadOnCloudinary ~ response:", response)
+        // console.log("🚀 ~ file: cloudinary.js:17 ~ fileUploadOnCloudinary ~ response:", response)
+        fs.unlinkSync(localFilePath) //remove locally saved file after file upload failed
         return response
 
     } catch (error) {
