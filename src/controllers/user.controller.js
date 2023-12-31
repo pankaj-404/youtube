@@ -381,6 +381,131 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
 })
 
+//getUserChannelProfile function
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+
+    const { username } = req?.params?.trim()
+    if (!username) {
+        throw new ApiError(400, "username is required")
+    }
+
+    const channel = await User.aggregate([
+        {
+            $match: {
+                username: username.toLowerCase()
+            }
+        }, {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        }, {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscriberTo"
+            }
+        }, {
+            $addFields: {
+                subscribersCount: {
+                    $size: "$subscribers"
+                },
+                subscriberToCount: {
+                    $size: "$subscriberTo"
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        }, {
+            $project: {
+                fullName: 1,
+                username: 1,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1
+            }
+        }
+    ])
+    console.log("🚀 ~ file: user.controller.js:439 ~ getUserChannelProfile ~ channel:", channel)
+
+    if (!channel?.length) {
+        throw new ApiError(404, "Channel not found")
+    }
+
+    return res.status(200).json(new ApiResponse(200, channel[0], "Channel profile retrieved successfully"))
+
+})
+
+//getWatchHistory function
+const getWatchHistory = asyncHandler(async (req, res) => {
+
+    const { username } = req?.params?.trim()
+    if (!username) {
+        throw new ApiError(400, "username is required")
+    }
+
+    //writing sub pipeline for finding watch history of user
+    const user = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user?._id)
+            }
+        }, {
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1
+                                    }
+                                }
+                            ]
+                        }
+                    }, {
+                        $addFields: {
+                            owner: {
+                                // $arrayElemAt: ["$owner", 0]
+                                $first: "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    if (!user?.length) {
+        throw new ApiError(404, "User not found")
+    }
+
+    return res.status(200).json(new ApiResponse(200, user[0], "Watch history retrieved successfully"))
+
+})
+
+
 
 export {
     registerUser,
@@ -391,5 +516,7 @@ export {
     getCurrentUser,
     updateUserProfile,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile,
+    getWatchHistory
 };
